@@ -1,2 +1,2 @@
 # edumeapi_gateway
-Edume API gateway
+Edume Router Service
