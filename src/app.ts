@@ -134,7 +134,7 @@ class App {
     });
   }
 
-  public listen() {
+  public listen():void {
     console.log(`App listening on the port ${this.port}`);
     this.app.listen(this.port, () => {
       SysLog.info(`App listening on the port ${this.port}`);
