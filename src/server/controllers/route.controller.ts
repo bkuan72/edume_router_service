@@ -12,6 +12,7 @@ import validationMiddleware from "../../middleware/validation.middleware";
 
 import PostDataFailedException from "../../exceptions/PostDataFailedException";
 import SysEnv from "../../modules/SysEnv";
+import PutDataFailedException from '../../exceptions/PutDataFailedException';
 
 
 
@@ -31,6 +32,9 @@ export class RoutesController implements Controller{
     this.router.post(this.path,
                     validationMiddleware(routes_schema),
                     this.newRoute);
+    this.router.put(this.path+'/putRoute',
+                      validationMiddleware(routes_schema),
+                      this.putRoute);
     this.router.get(this.path,  this.getAll);
     this.router.get(this.path+'/byId/:id', this.findById);
     this.router.patch(this.path+'/:id', validationUpdateMiddleware(routes_schema), this.update);
@@ -61,6 +65,29 @@ export class RoutesController implements Controller{
           }
       })
   };
+
+  putRoute  = (request: express.Request, response: express.Response, next: express.NextFunction) => {
+    this.routes.find( { url_path : request.body.url_path }).then((respRouteDTO) => {
+      if (respRouteDTO[0]) {
+        this.routes.updateById(respRouteDTO[0].id, request.body).then((respRouteDTO) => {
+          if (respRouteDTO) {
+            response.send(respRouteDTO);
+          } else {
+            next(new DataNotFoundException(request.params.id))
+          }
+        })
+      } else {
+        this.routes.create(request.body).then((respRouteDTO) => {
+          if (respRouteDTO) {
+              response.send(respRouteDTO);
+            } else {
+              next(new PutDataFailedException())
+            }
+        })      }
+    })
+
+  };
+
 
   findById  = (request: express.Request, response: express.Response, next: express.NextFunction) => {
     this.routes.findById(request.params.id).then((respRouteDTO) => {
