@@ -57,7 +57,7 @@ export class RoutesController implements Controller{
   }
 
   newRoute  = (request: express.Request, response: express.Response, next: express.NextFunction) => {
-      this.routes.create(request.body).then((respRouteDTO) => {
+      this.routes.create(request.body).then((respRouteDTO) => {        console.log(request.body)
         if (respRouteDTO) {
             response.send(respRouteDTO);
           } else {
@@ -67,9 +67,15 @@ export class RoutesController implements Controller{
   };
 
   putRoute  = (request: express.Request, response: express.Response, next: express.NextFunction) => {
+    console.log(request.body)
     this.routes.find( { url_path : request.body.url_path }).then((respRouteDTO) => {
+      console.log("Got responseDTO")
+      console.log(respRouteDTO)
       if (respRouteDTO[0]) {
+        console.log(request.body)
         this.routes.updateById(respRouteDTO[0].id, request.body).then((respRouteDTO) => {
+          console.log("Update responseDTO")
+          console.log(respRouteDTO)
           if (respRouteDTO) {
             response.send(respRouteDTO);
           } else {
@@ -77,13 +83,18 @@ export class RoutesController implements Controller{
           }
         })
       } else {
+        console.log ('POST')
+        console.log(respRouteDTO)
         this.routes.create(request.body).then((respRouteDTO) => {
+          console.log ('POST Success')
+          console.log(respRouteDTO)
           if (respRouteDTO) {
               response.send(respRouteDTO);
             } else {
               next(new PutDataFailedException())
             }
-        })      }
+        })
+      }
     })
 
   };
