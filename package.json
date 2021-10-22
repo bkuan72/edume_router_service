@@ -62,6 +62,8 @@
   "scripts": {
     "run-build": "node --trace-warnings www/server.js",
     "start": "npm run build && node build/server.js",
+    "start-debug": "npm run build && node -r dotenv/config build/server.js dotenv_config_path=./.env.debug",
+    "start-debug:dev": "nodemon  -r dotenv/config dotenv_config_path=./.env.debug",
     "build": "rimraf ./build && tsc && copy package*.json build",
     "start:dev": "nodemon",
     "lint": "eslint . --ext .ts",

@@ -1,8 +1,9 @@
+import 'dotenv/config'; // loads the .env environment
 import SysLog from './modules/SysLog';
 import toobusy_js from 'toobusy-js';
 import SysEnv from './modules/SysEnv';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import 'dotenv/config'; // loads the .env environment
+
 import validateEnv from './utils/validateEnv';
 import App from './app';
 import { RoutesController } from './server/controllers/route.controller';
