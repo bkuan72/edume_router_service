@@ -29,15 +29,15 @@ export class RoutesController implements Controller{
   }
 
   public initializeRoutes() {
-    this.router.post(this.path,
+    this.router.post(this.path+'/post',
                     validationMiddleware(routes_schema),
                     this.newRoute);
     this.router.put(this.path+'/putRoute',
                       validationMiddleware(routes_schema),
                       this.putRoute);
-    this.router.get(this.path,  this.getAll);
+    this.router.get(this.path+'/all',  this.getAll);
     this.router.get(this.path+'/byId/:id', this.findById);
-    this.router.patch(this.path+'/:id', validationUpdateMiddleware(routes_schema), this.update);
+    this.router.patch(this.path+'/patch/:id', validationUpdateMiddleware(routes_schema), this.update);
     this.router.get(this.path+'/DTO', this.apiDTO);
     this.router.get(this.path+'/updDTO', this.apiUpdDTO);
     this.router.get(this.path+'/schema', this.apiSchema);
