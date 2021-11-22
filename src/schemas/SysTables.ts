@@ -1,5 +1,4 @@
 import { route_proxy_paths_schema, route_proxy_paths_schema_table } from './routeProxyPaths.schema';
-import { properties_schema, properties_schema_table } from './properties.schema';
 import { tableIfc } from '../modules/DbModule';
 import { routes_schema, routes_schema_table } from './routes.schema';
 

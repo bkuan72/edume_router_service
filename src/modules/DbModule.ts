@@ -6,6 +6,7 @@ import { sysTables } from '../schemas/SysTables';
 import SysLog from './SysLog';
 import SqlFormatter from './sql.strings';
 import Session from 'mysqlx/lib/Session';
+
 export interface indexIfc {
     name: string;
     columns: string[];
@@ -41,54 +42,56 @@ export interface tableIfc {
 }
 
 class Database {
-    DB!: Session;
+    private DBSession!: Session;
 
     serverCfg!: {
         host: string | undefined;
         user: string | undefined;
         password: string | undefined;
     };
-
-    /**
+   /**
      * connect the application to the MySQL database
      */
-    DBM_connectDB = (): Promise<any> => {
+    DBM_connectDB = (): Promise<Session> => {
         return new Promise ((resolve) => {
-            const {
-                DB_HOST,
-                DB_USER,
-                DB_PASSWORD,
-                DB_NAME,
-                DB_PORT
-              } = process.env;
+            if (this.DBSession == undefined) {
+                const {
+                    DB_HOST,
+                    DB_USER,
+                    DB_PASSWORD,
+                    DB_NAME
+                  } = process.env;
 
-              this.serverCfg = {
-                  host: DB_HOST,
-                  user: DB_USER,
-                  password: DB_PASSWORD
-              };
-            let dbName = "testdb";
-            if (DB_NAME != undefined) {
-                dbName = DB_NAME;
+                  this.serverCfg = {
+                      host: DB_HOST,
+                      user: DB_USER,
+                      password: DB_PASSWORD
+                  };
+                let dbName = "testdb";
+                if (DB_NAME != undefined) {
+                    dbName = DB_NAME;
+                }
+                SysLog.info("host: " + this.serverCfg.host);
+                SysLog.info("user: " + this.serverCfg.user);
+                SysLog.info("password: " + this.serverCfg.password);
+                // SysLog.info("port: " + this.serverCfg.port);
+                mysqlx.getSession(this.serverCfg).then((session) => {
+                  this.DBSession = session;
+                  SysLog.info("Connected!");
+                  this.DBM_initializeDatabase(dbName).then (() => {
+                    resolve(this.DBSession);
+                  })
+                  .catch((err: any) => {
+                    throw(err);
+                  });
+                })
+                .catch((err: any) => {
+                    throw(err);
+                });
+
+            } else {
+                resolve(this.DBSession);
             }
-            SysLog.info("host: " + this.serverCfg.host);
-            SysLog.info("user: " + this.serverCfg.user);
-            SysLog.info("password: " + this.serverCfg.password);
-            // SysLog.info("port: " + this.serverCfg.port);
-            mysqlx.getSession(this.serverCfg).then((session) => {
-              this.DB = session;
-              SysLog.info("Connected!");
-              this.DBM_initializeDatabase(dbName).then (() => {
-                    resolve(this.DB);
-              })
-              .catch((err: any) => {
-                throw(err);
-              });
-            })
-            .catch((err: any) => {
-                throw(err);
-            });
-
         });
     }
 
@@ -99,7 +102,7 @@ class Database {
      */
     DBM_initializeDatabase = (dbName: string): Promise<any> => {
         return new Promise ((resolve, reject) => {
-            this.DB.sql("SHOW DATABASES LIKE " + CommonFn.strWrapper(dbName))
+            this.DBSession.sql("SHOW DATABASES LIKE " + CommonFn.strWrapper(dbName))
                 .execute().then((result) => {
                     SysLog.info("Result: " + JSON.stringify(result));
                     if (result.rows.length === 0) {
@@ -136,6 +139,12 @@ class Database {
         });
     }
 
+    /**
+     * Check and update table schema if there is missing fields in the database table
+     * @param dbName database schema name
+     * @param table table name
+     * @returns 
+     */
     DBM_tableSchemaUpdate = (dbName: string, table: tableIfc): Promise<any | boolean> => {
         return new Promise ((resolve, reject) => {
             const columns: string[] = [
@@ -153,7 +162,7 @@ class Database {
                     colStr = col;
                 }
             });
-            this.DB.sql("SELECT " + colStr +
+            this.DBSession.sql("SELECT " + colStr +
                         " FROM INFORMATION_SCHEMA.COLUMNS" +
                         " WHERE TABLE_SCHEMA = " + CommonFn.strWrapper(dbName) +
                         " AND TABLE_NAME = " + CommonFn.strWrapper(table.name) + ";")
@@ -193,7 +202,7 @@ class Database {
 
                     if (alterSql !== '') {
                         alterSql += ';';
-                        this.DB.sql(alterSql)
+                        this.DBSession.sql(alterSql)
                         .execute()
                         .then((result) => {
                             SysLog.info("Success Altering Table Schema : " + JSON.stringify(result))
@@ -222,7 +231,7 @@ class Database {
     DBM_tableExistCheck = (dbName: string, table: tableIfc): Promise<any | boolean> => {
         return new Promise((resolve, reject) => {
             let exist = false;
-            this.DB.sql("SHOW TABLES LIKE " + CommonFn.strWrapper(table.name)).execute()
+            this.DBSession.sql("SHOW TABLES LIKE " + CommonFn.strWrapper(table.name)).execute()
                 .then((result) => {
                     if (result.rows.length === 0) {
                         SysLog.info("Table " + table.name + " Does Not Exist");
@@ -255,7 +264,7 @@ class Database {
      */
     DBM_selectDatabase = (dbName: string): Promise<any> => {
         return new Promise((resolve, reject) => {
-            this.DB.sql("USE " + dbName).execute()
+            this.DBSession.sql("USE " + dbName).execute()
             .then((result) => {
                 SysLog.info("Database " + dbName + " Used " + JSON.stringify(result));
                 resolve(undefined);
@@ -271,7 +280,7 @@ class Database {
      */
     DBM_createDb = (dbName: string): Promise<any> => {
         return new Promise ((resolve, reject) => {
-            this.DB.sql("CREATE DATABASE " + CommonFn.strWrapper(dbName)).execute()
+            this.DBSession.sql("CREATE DATABASE " + dbName).execute()
             .then((result) => {
                 SysLog.info("Database created " + JSON.stringify(result));
                 resolve(undefined);
@@ -281,14 +290,21 @@ class Database {
             });
         })
     }
-
+    /**
+     * Create table index
+     * @param prom  promise to resolve after task complete
+     * @param dbName database schema name
+     * @param tableName table name
+     * @param index index interface object
+     * @returns 
+     */
     DBM_createIndex = (prom: Promise<any>, dbName: string, tableName: string, index: indexIfc): Promise<any | undefined> => {
         let sql = '';
         return new Promise((resolve, reject) => {
             if (prom == undefined) {
                 sql = SqlFormatter.formatCreateIndexSql (dbName, tableName, index);
                 SysLog.info("Create Index : " + sql);
-                this.DB.sql(sql).execute()
+                this.DBSession.sql(sql).execute()
                 .then((result) => {
                     SysLog.info("Index created : " + JSON.stringify(result));
                     resolve(undefined);
@@ -303,7 +319,7 @@ class Database {
                 prom.then(() => {
                         sql = SqlFormatter.formatCreateIndexSql (dbName, tableName, index);
                         SysLog.info("Create Index : " + sql);
-                        this.DB.sql(sql).execute()
+                        this.DBSession.sql(sql).execute()
                         .then((result) => {
                             SysLog.info("Index created : " + JSON.stringify(result));
                             resolve(undefined);
@@ -348,7 +364,7 @@ class Database {
             sql += ");";
 
             SysLog.info("Create Table : " + sql);
-            this.DB.sql(sql).execute()
+            this.DBSession.sql(sql).execute()
             .then((result) => {
                 SysLog.info("Table created : " + JSON.stringify(result));
                 sql = ''

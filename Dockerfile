@@ -18,4 +18,4 @@ COPY package*.json /app/edume_router
 RUN npm install && npm i -g nodemon 
 
 CMD [ "npm", "run", "run-build" ]
-EXPOSE 3302
+EXPOSE 33002

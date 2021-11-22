@@ -1,13 +1,11 @@
 import * as express from 'express';
-import dbConnection from './modules/DbModule';
 import cookieParser = require('cookie-parser');
 import SysLog from './modules/SysLog';
 import toobusy_js = require('toobusy-js');
 import ServerTooBusyException from './exceptions/ServerTooBusyException';
 import rateLimit = require('express-rate-limit');
 import SysEnv from './modules/SysEnv';
-import { ServerDefaultProperties, ServerPropertyTypeEnum } from './config/server.default.properties';
-import { PropertyModel } from './server/models/property.model';
+import Controller from './interfaces/controller.interface';
 
 
 
@@ -15,14 +13,10 @@ import { PropertyModel } from './server/models/property.model';
 class App {
   public app: express.Application;
   public port: number;
-  public logger: any;
-  private properties: PropertyModel;
 
-  constructor(controllers: any[], port: number) {
-    this.properties = new PropertyModel();
+  constructor(controllers: Controller[], port: number) {
     this.app = express.default();
     this.port = port;
-    this.connectToTheDatabase();
     this.initializeMiddlewares();
     this.initializeControllers(controllers);
     // The default maxLag value is 70ms, and the default check interval is 500ms.
@@ -36,7 +30,8 @@ class App {
     });
   }
 
-  loggerMiddleware = (request: express.Request, response: express.Response, next: any) => {
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  loggerMiddleware = (request: express.Request, response: express.Response, next: express.NextFunction) => {
     SysLog.http('Request Header:' + JSON.stringify(request.headers));
     SysLog.http('Request Body :' + JSON.stringify(request.body));
     SysLog.http('Request Parameters :' + JSON.stringify(request.params))
@@ -55,8 +50,8 @@ class App {
     // this.app.use(express.multipart({ limit:"10mb" }));
     // this.app.use(express.limit("5kb")); // this will be valid for every other content type
     this.app.use(this.loggerMiddleware);
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    // this.app.use(express.json());
+    // this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
     //  apply to all requests
     this.app.use(this.limiter);
@@ -70,72 +65,14 @@ class App {
     })
   }
 
-  private initializeControllers(controllers: any[]) {
+  private initializeControllers(controllers: Controller[]) {
     controllers.forEach((controller: { router: import("express-serve-static-core").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs>; }) => {
       this.app.use('/api', controller.router);
     });
   }
 
-  private createDefaultProperties(index: number): Promise<void> {
-    return new Promise<void>((resolve) => {
-        if (index >= ServerDefaultProperties.length) {
-          resolve();
-        } else {
-          const prop = ServerDefaultProperties[index];
-          const propName = SysEnv.SITE_CODE +'.'+ prop.name
-          this.properties.find({
-            name: propName
-          }).then((propArray) => {
-            if (propArray.length === 0) {
-              const newProperty = {
-                name: '',
-                property_type: '',
-                value: '',
-                numValue: 0
-              };
-              newProperty.name = propName;
-              switch(prop.type) {
-                case ServerPropertyTypeEnum.INT:
-                  if (prop.numValue) {
-                    newProperty.numValue = prop.numValue;
-                  }
-                  newProperty.property_type = 'INT';
-                  break;
-                case ServerPropertyTypeEnum.TEXT:
-                  if (prop.value) {
-                    newProperty.value = prop.value;
-                  }
-                  newProperty.property_type = 'TEXT';
-                break;
-              }
-              this.properties.create(newProperty).finally(() => {
-                this.createDefaultProperties(index + 1);
-              })
-            }
-          })
-          .catch((err) => {
-            throw(err);
-          });
-
-        }
-
-    });
-  }
-
-  private connectToTheDatabase() {
-    dbConnection.DBM_connectDB()
-    .then(async () => {
-
-      this.createDefaultProperties(0);
-
-    })
-    .catch((err) => {
-      throw(err);
-    });
-  }
 
   public listen():void {
-    console.log(`App listening on the port ${this.port}`);
     this.app.listen(this.port, () => {
       SysLog.info(`App listening on the port ${this.port}`);
     });

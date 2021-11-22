@@ -22,33 +22,5 @@ export class RouteModel extends EntityModel {
     this.routeProxyPath = new RouteProxyPathModel();
   }
 
-  public getAllRoutes() {
-    return new Promise<any[]>((resolve) => {
-      const getProxyPaths = (routes: any[], idx: number) => {
-        return new Promise<void>((res) => {
-          this.routeProxyPath.find({route_id: routes[idx].id}).then((proxyPaths) => {
-            if (idx >= routes.length) {
-              // TODO
-              res();
-            } else {
-              getProxyPaths(routes, idx++);
-            }
-          })
-          .catch(() => {
-            res();
-          })
-        });
-      }
-      const i = 0;
-      this.getAll().then((routes: any[]) => {
-        getProxyPaths(routes, i).finally(() => {
-          resolve(routes);
-        });
-      })
-      .catch(() => {
-        resolve([]);
-      })
-    });
-  }
 
 }

@@ -1,5 +1,4 @@
 import 'dotenv/config'; // loads the .env environment
-import SysLog from './modules/SysLog';
 import toobusy_js from 'toobusy-js';
 import SysEnv from './modules/SysEnv';
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -12,11 +11,7 @@ import { RoutesController } from './server/controllers/route.controller';
 SysEnv.init();
 validateEnv();
 
-// const blacklistTokens = new TokenModel(blacklist_tokens_schema_table);
-// const tokens = new TokenModel(tokens_schema_table);
-
 const port = SysEnv.PORT;
-
 
 const app = new App (
   [

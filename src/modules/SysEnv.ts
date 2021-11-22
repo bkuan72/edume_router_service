@@ -21,7 +21,6 @@ export class SystemEnvironment {
 
     TOOBUSY_MAX_LAG: number;
     TOOBUSY_CHECK_INTERVAL: number;
-
     private COOKIE_AUTH: string;
 
     constructor () {
@@ -29,8 +28,8 @@ export class SystemEnvironment {
         this.DB_USER = 'webservice';            // database user id
         this.DB_PASSWORD = ''                   // database password
         this.DB_NAME = 'testdb';                // database name
-        this.DB_PORT = '33000';                    // database port
-        this.PORT = 3000;                       // this server port
+        this.DB_PORT = '3306';                    // database port
+        this.PORT = 33002;                       // this server port
         this.JWT_SECRET = '';                   // JWT secret key
         this.DB_BCRYPT_SALT = 10;               // Bcrypt salt number
         this.SITE_CODE = 'TEST';                // this server's site code
