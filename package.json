@@ -29,7 +29,7 @@
     "mailgen": "^2.0.14",
     "mysqlx": "^1.1.7",
     "node-cron": "^2.0.3",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "nodemailer": "^6.4.17",
     "sqlstring": "^2.3.2",
     "tar": "^6.1.11",
